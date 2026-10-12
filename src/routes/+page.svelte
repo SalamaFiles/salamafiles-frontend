@@ -12,13 +12,15 @@
 	import { toast } from 'svelte-sonner';
 
 	import {
+		createReport,
 		fetchReports,
 		assignReport,
 		resolveReport,
 		escalateReport,
 		resolveEscalation,
 		addNote,
-        updateReport
+        updateReport,
+		uploadReportAttachment
 	} from '$lib/api/reports.js';
 
 	import { fetchUsers } from '$lib/api/user.js';
@@ -238,6 +240,32 @@ async function handleUpdateReport(id, payload) {
     }
 }
 
+
+async function handleUploadEvidence(reportId, file) {
+    const toastId = toast.loading('Uploading evidence...');
+
+    try {
+        await uploadReportAttachment(reportId, file);
+
+        await loadReports();
+
+        toast.dismiss(toastId);
+        toast.success('Evidence uploaded successfully.');
+
+        return true;
+    } catch (err) {
+        toast.dismiss(toastId);
+
+        toast.error(
+            err?.message || 'Failed to upload evidence.'
+        );
+
+        console.error('Evidence upload failed:', err);
+
+        return false;
+    }
+}
+
 	// ---------------- INIT ----------------
 
 	onMount(async () => {
@@ -253,6 +281,35 @@ async function handleUpdateReport(id, payload) {
 		await loadReports();
 		await loadUsers();
 	});
+
+	
+async function handleCreateCase(payload) {
+  const toastId = toast.loading('Creating case...');
+
+  try {
+    await createReport(payload);
+
+    // Show the Received Reports tab.
+    appState.mainView = 'issues';
+    appState.subTab = 'received';
+
+    // Refresh the list so the new Pending case appears.
+    await loadReports();
+
+    toast.dismiss(toastId);
+    toast.success('Case created successfully.');
+
+    return true;
+  } catch (err) {
+    toast.dismiss(toastId);
+    toast.error(err?.message || 'Failed to create case.');
+
+    console.error('Failed to create manual case:', err);
+
+    return false;
+  }
+}
+
 </script>
 
 
@@ -283,7 +340,8 @@ async function handleUpdateReport(id, payload) {
 	{handleAddNote}
 	{handleEditResolution}
     {handleUpdateReport}
-	
+	{handleCreateCase}
+	{handleUploadEvidence}
   />
 {:else if view === 'organizations'}
 

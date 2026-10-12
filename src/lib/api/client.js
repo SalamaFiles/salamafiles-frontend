@@ -1,41 +1,52 @@
+
 import { API_URL } from '$lib/config';
 
 export async function apiFetch(endpoint, options = {}) {
+    const token = localStorage.getItem('token');
+    const isFormData =
+        typeof FormData !== 'undefined' &&
+        options.body instanceof FormData;
 
-	const token = localStorage.getItem('token');
+    const headers = {
+        ...(!isFormData && {
+            'Content-Type': 'application/json'
+        }),
 
-	const response = await fetch(
-		`${API_URL}${endpoint}`,
-		{
-			...options,
+        ...(token && {
+            Authorization: `Bearer ${token}`
+        }),
 
-			headers: {
-				'Content-Type': 'application/json',
+        ...(options.headers || {})
+    };
 
-				...(token && {
-					Authorization: `Bearer ${token}`
-				}),
+    // Let the browser set the multipart boundary.
+    if (isFormData) {
+        delete headers['Content-Type'];
+    }
 
-				...(options.headers || {})
-			}
-		}
-	);
+    const response = await fetch(
+        `${API_URL}${endpoint}`,
+        {
+            ...options,
+            headers
+        }
+    );
 
-	let data = {};
+    let data = {};
 
-	try {
-		data = await response.json();
-	} catch {
-		// Some endpoints may return 204 No Content
-	}
+    try {
+        data = await response.json();
+    } catch {
+        // Some endpoints may return 204 No Content.
+    }
 
-	if (!response.ok) {
-		throw new Error(
-			data.error ||
-			data.message ||
-			'Something went wrong'
-		);
-	}
+    if (!response.ok) {
+        throw new Error(
+            data.error ||
+            data.message ||
+            'Something went wrong'
+        );
+    }
 
-	return data;
+    return data;
 }

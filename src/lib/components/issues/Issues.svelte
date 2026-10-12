@@ -1,6 +1,7 @@
 <script>
   import { appState } from '$lib/state.svelte.js';
   import IssueCard from './IssueCard.svelte';
+  import CreateCaseModal from './CreateCaseModal.svelte';
 
   let {
     reports,
@@ -12,10 +13,14 @@
     handleResolveEscalation,
     handleAddNote,
     handleEditResolution,
-    handleUpdateReport
+    handleUpdateReport,
+    handleCreateCase,
+    handleUploadEvidence
   } = $props();
 
   let filteredReports = $state([]);
+  let showCreateCase = $state(false);
+  let creatingCase = $state(false);
 
   const normalize = (s) => s?.toLowerCase();
 
@@ -111,6 +116,16 @@
 
 </h2>
 
+ {#if appState.subTab === 'received'}
+    <button
+      class="add-case-btn"
+      onclick={() => showCreateCase = true}
+    >
+      <span aria-hidden="true">+</span>
+      Add New Case
+    </button>
+  {/if}
+
 <!-- Content -->
 
 {#if loading}
@@ -141,12 +156,31 @@
         {handleAddNote}
         {handleEditResolution}
         {handleUpdateReport}
+        {handleUploadEvidence}
       />
 
     {/each}
 
   </div>
 
+{/if}
+
+{#if showCreateCase}
+  <CreateCaseModal
+    saving={creatingCase}
+    onClose={() => {
+      if (!creatingCase) showCreateCase = false;
+    }}
+    onSubmit={async (payload) => {
+      creatingCase = true;
+
+      try {
+        return await handleCreateCase(payload);
+      } finally {
+        creatingCase = false;
+      }
+    }}
+  />
 {/if}
 
 <style>
@@ -170,6 +204,42 @@
 .empty-state {
   color: #94a3b8;
   font-style: italic;
+}
+
+.issues-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.issues-heading .section-title {
+  margin-bottom: 0;
+}
+
+.add-case-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid #0f766e;
+  border-radius: 8px;
+  background: #0f766e;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-case-btn:hover {
+  background: #115e59;
+}
+
+@media (max-width: 560px) {
+  .issues-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 </style>

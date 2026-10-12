@@ -233,3 +233,17 @@ export function updateReport(reportId, payload) {
     );
 
 }
+
+
+export function uploadReportAttachment(reportId, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return apiFetch(
+        `/reports/${reportId}/attachments`,
+        {
+            method: 'POST',
+            body: formData
+        }
+    );
+}

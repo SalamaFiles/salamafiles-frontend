@@ -14,7 +14,8 @@ let showModal = $state(false);
   handleResolveEscalation,
   handleEditResolution,
   handleAddNote,
-  handleUpdateReport
+  handleUpdateReport,
+  handleUploadEvidence
 } = $props();
 
 const emergencyStaff = $derived(
@@ -29,6 +30,28 @@ const emergencyStaff = $derived(
   let noteText = $state("");
   let editField = $state("");
   let editTitle = $state("");
+
+  let uploadingEvidence = $state(false);
+let evidenceError = $state('');
+
+async function handleEvidenceChange(event) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+
+    if (!file) return;
+
+    evidenceError = '';
+    uploadingEvidence = true;
+
+    try {
+        await handleUploadEvidence(r._id, file);
+    } catch (error) {
+        evidenceError = error?.message || 'Evidence upload failed.';
+    } finally {
+        uploadingEvidence = false;
+        input.value = '';
+    }
+}
 
 </script>
 
@@ -135,6 +158,67 @@ const emergencyStaff = $derived(
 
             </div>
         {/each}
+        <!-- Evidence and Attachments -->
+<div class="notes-card evidence-card">
+    <div class="notes-header">
+        <Icon icon="lucide:paperclip" width="18" />
+        <div>
+            <p class="notes-title">Case Evidence</p>
+            <p class="notes-subtitle">
+                Upload supporting documents or images.
+            </p>
+        </div>
+    </div>
+
+    <label class="assign-label" for="evidence-{r._id}">
+        Select evidence
+    </label>
+
+    <input
+        id="evidence-{r._id}"
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png"
+        onchange={handleEvidenceChange}
+        disabled={uploadingEvidence}
+    />
+
+    {#if uploadingEvidence}
+        <p class="notes-subtitle">Uploading evidence...</p>
+    {/if}
+
+    {#if evidenceError}
+        <p class="evidence-error">{evidenceError}</p>
+    {/if}
+
+    {#if r.attachments?.length}
+        <div class="notes-list">
+            {#each r.attachments as attachment}
+                <div class="note-item">
+                    <div class="note-text">
+                        <Icon
+                            icon="lucide:file"
+                            width="16"
+                        />
+                        {attachment.originalName || attachment.filename}
+                    </div>
+
+                    <p class="notes-subtitle">
+                        {attachment.size
+                            ? `${(attachment.size / 1024).toFixed(1)} KB`
+                            : ''}
+                        {#if attachment.uploadedAt}
+                            · {new Date(
+                                attachment.uploadedAt
+                            ).toLocaleString()}
+                        {/if}
+                    </p>
+                </div>
+            {/each}
+        </div>
+    {:else}
+        <p class="notes-subtitle">No evidence uploaded yet.</p>
+    {/if}
+</div>
     </div>
 
 </div>
@@ -1308,6 +1392,23 @@ const emergencyStaff = $derived(
   margin: 2px 0 0;
   font-size: 0.75rem;
   color: #64748b;
+}
+
+.evidence-card {
+    margin-top: 1rem;
+}
+
+.evidence-card input[type="file"] {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    font-size: 0.85rem;
+}
+
+.evidence-error {
+    color: #b91c1c;
+    font-size: 0.85rem;
+    margin-top: 8px;
 }
 
 </style>
